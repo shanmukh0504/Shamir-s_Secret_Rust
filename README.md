@@ -33,7 +33,7 @@ project_root/
 1. Clone the repository:
    ```bash
    git clone https://github.com/shanmukh0504/Shamir-s_Secret_Rust.git
-   cd sss
+   cd Shamir-s_Secret_Rust
    ```
 
 2. Build the project:
