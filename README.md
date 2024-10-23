@@ -32,8 +32,8 @@ project_root/
 
 1. Clone the repository:
    ```bash
-   git clone <repository-url>
-   cd secret-sharing
+   git clone https://github.com/shanmukh0504/Shamir-s_Secret_Rust.git
+   cd sss
    ```
 
 2. Build the project:
