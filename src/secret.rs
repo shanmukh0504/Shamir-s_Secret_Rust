@@ -1,15 +1,27 @@
 #[path="./fraction.rs"]
 mod fraction;
-use fraction::Fraction;
+use std::collections::HashMap;
 
-pub fn generate_secret(x: &[i128], y: &[i128], m: usize) -> i128 {
-    let mut ans = Fraction::new(0, 1);
+use fraction::Fraction;
+use num_bigint::BigInt;
+use num_traits::Num;
+
+fn parse_value(base: u32, value: &str) -> BigInt {
+    BigInt::from_str_radix(value, base).expect("Invalid value for the given base")
+}
+
+/// Generate the secret using arbitrary-precision arithmetic.
+pub fn generate_secret(x: &[BigInt], y: &[BigInt], m: usize) -> BigInt {
+    let mut ans = Fraction::new(BigInt::from(0), BigInt::from(1));
 
     for i in 0..m {
-        let mut l = Fraction::new(y[i], 1);
+        let mut l = Fraction::new(y[i].clone(), BigInt::from(1));
         for j in 0..m {
             if i != j {
-                let temp = Fraction::new(-x[j], x[i] - x[j]);
+                let temp = Fraction::new(
+                    -x[j].clone(),
+                    x[i].clone() - x[j].clone(),
+                );
                 l = l * temp;
             }
         }
@@ -19,28 +31,29 @@ pub fn generate_secret(x: &[i128], y: &[i128], m: usize) -> i128 {
     ans.num
 }
 
-pub fn recover_secret(shares: &[(i128, i128)], k: usize) {
-    if shares.len() < k {
-        println!("Not enough shares to recover the secret.");
-        return;
+/// Recover the secret from shares provided in different bases.
+pub fn recover_secret_from_input(input: &HashMap<String, HashMap<String, String>>) -> Result<BigInt, &'static str> {
+    let keys = &input["keys"];
+    let n = keys["n"].parse::<usize>().expect("Invalid n value");
+    let k = keys["k"].parse::<usize>().expect("Invalid k value");
+
+    if n < k {
+        return Err("Not enough shares to recover the secret.");
     }
 
-    let x: Vec<i128> = shares.iter().take(k).map(|(x, _)| *x).collect();
-    let y: Vec<i128> = shares.iter().take(k).map(|(_, y)| *y).collect();
+    let mut x = Vec::new();
+    let mut y = Vec::new();
 
-    let secret = generate_secret(&x, &y, k);
-    println!("Recovered Secret: {}", secret);
-}
+    for i in 1..=n {
+        let share = input[&i.to_string()].clone();
+        let base = share["base"].parse::<u32>().expect("Invalid base");
+        let value = &share["value"];
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+        let parsed_value = parse_value(base, value);
 
-    #[test]
-    fn test_generate_secret() {
-        let x = vec![1, 2, 3, 4];
-        let y = vec![602, 1139, 1676, 2213];
-        let result = generate_secret(&x, &y, 3);
-        assert_eq!(result, 65);
+        x.push(BigInt::from(i as i128));
+        y.push(parsed_value);
     }
+
+    Ok(generate_secret(&x, &y, k))
 }
